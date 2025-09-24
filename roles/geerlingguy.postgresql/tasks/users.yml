@@ -1,0 +1,17 @@
+- name: Ensure PostgreSQL users are present.
+  postgresql_user:
+    name: "{{ item.name }}"
+    password: "{{ item.password | default(omit) }}"
+    login_host: "127.0.0.1"
+    login_user: "postgres"
+    login_password: "{{ vault_postgres_password }}"
+    login_unix_socket: ""
+    port: 5432
+  with_items: "{{ postgresql_users }}"
+  become: true
+  become_user: root
+  vars:
+    ansible_ssh_pipelining: true
+  environment:
+    PGOPTIONS: "{{ (postgresql_auth_method == 'scram-sha-256') | ternary('-c password_encryption=scram-sha-256', '') }}"
+

@@ -1,0 +1,97 @@
+# 0. Проверка и генерация ключей WireGuard
+- name: Ensure /etc/wireguard exists
+  ansible.builtin.file:
+    path: /etc/wireguard
+    state: directory
+    owner: root
+    group: root
+    mode: '0700'
+
+- name: Read server private key if exists
+  ansible.builtin.stat:
+    path: /etc/wireguard/server.key
+  register: server_key_stat
+
+- name: Generate server private key if missing
+  ansible.builtin.command: wg genkey
+  register: wg_server_key_generated
+  when: not server_key_stat.stat.exists
+  changed_when: true
+  check_mode: no
+  no_log: true
+
+- name: Read existing server private key
+  ansible.builtin.command: cat /etc/wireguard/server.key
+  register: wg_server_key_existing
+  when: server_key_stat.stat.exists
+  changed_when: false
+  no_log: true
+
+- name: Set server private key
+  ansible.builtin.set_fact:
+    wg_server_private_key_final: >-
+      {{ wg_server_key_generated.stdout
+         if not server_key_stat.stat.exists
+         else wg_server_key_existing.stdout }}
+  no_log: true
+
+- name: Save server private key to file
+  ansible.builtin.copy:
+    dest: /etc/wireguard/server.key
+    content: "{{ wg_server_private_key_final }}"
+    owner: root
+    group: root
+    mode: '0600'
+  when: not server_key_stat.stat.exists
+
+- name: Generate server public key
+  ansible.builtin.command: echo "{{ wg_server_private_key_final }}" | wg pubkey
+  register: wg_server_public_key
+  changed_when: false
+  check_mode: no
+  no_log: true
+
+- name: Read client private key if exists
+  ansible.builtin.stat:
+    path: /etc/wireguard/client.key
+  register: client_key_stat
+
+- name: Generate client private key if missing
+  ansible.builtin.command: wg genkey
+  register: wg_client_key_generated
+  when: not client_key_stat.stat.exists
+  changed_when: true
+  check_mode: no
+  no_log: true
+
+- name: Read existing client private key
+  ansible.builtin.command: cat /etc/wireguard/client.key
+  register: wg_client_key_existing
+  when: client_key_stat.stat.exists
+  changed_when: false
+  no_log: true
+
+- name: Set client private key
+  ansible.builtin.set_fact:
+    wg_client_private_key_final: >-
+      {{ wg_client_key_generated.stdout
+         if not client_key_stat.stat.exists
+         else wg_client_key_existing.stdout }}
+  no_log: true
+
+- name: Save client private key to file
+  ansible.builtin.copy:
+    dest: /etc/wireguard/client.key
+    content: "{{ wg_client_private_key_final }}"
+    owner: root
+    group: root
+    mode: '0600'
+  when: not client_key_stat.stat.exists
+
+- name: Generate client public key
+  ansible.builtin.command: echo "{{ wg_client_private_key_final }}" | wg pubkey
+  register: wg_client_public_key
+  changed_when: false
+  check_mode: no
+  no_log: true
+
