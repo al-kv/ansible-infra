@@ -1,0 +1,2 @@
+wg_network: 10.10.10.0/24
+wg_out_iface: eth0

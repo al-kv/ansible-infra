@@ -1,0 +1,11 @@
+# Пароли для базы данных
+vault_db_user_password: "us3n5fbzxsuglsx9x17pgrotdj"
+vault_zabbix_db_password: "us3n5fbzxsuglsx9x17pgrotdj1"
+vault_postgres_password: "us3n5fbzxsuglsx9x17pgrotdj2"
+
+# WireGuard ключи (сгенерируйте новые!)
+vault_wg_server_private_key: "QMRUy6+i/kEwcsJSgDLHt5WwkvEmHjCAiV3DKIHksV8=
+"
+vault_wg_client_private_key: "2GBi5VDzsOre8pKxooEh/oRUaMgQ3jXbBuvfd8k+6UI=
+"
+
