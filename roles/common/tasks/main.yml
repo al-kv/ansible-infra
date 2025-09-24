@@ -1,0 +1,58 @@
+---
+# roles/common/tasks/main.yml
+
+# 1. Сбор фактов о сервисах
+- name: Gather service facts
+  service_facts:
+
+# 2. Обновление кэша APT и дистрибутивное обновление
+- name: Update and upgrade
+  apt:
+    update_cache: yes
+    upgrade: dist
+
+# 3. Обновление кэша APT
+- name: Update APT cache
+  apt:
+    update_cache: yes
+
+# 4. Установка базовых пакетов
+- name: Install common packages
+  apt:
+    name:
+      - ufw
+      - curl
+      - vim
+      - htop
+      - ca-certificates
+    state: present
+
+# 5. Установка пакетов для мониторинга
+- name: Install monitoring packages
+  apt:
+    name:
+      - prometheus-node-exporter
+      - python3-psycopg2
+      - chrony
+    state: present
+
+# 6. Включение и запуск chrony, если сервис существует
+- name: Enable chrony if service exists
+  systemd:
+    name: chrony
+    state: started
+    enabled: true
+  when: "'chrony.service' in ansible_facts.services"
+
+# 7. СНАЧАЛА разрешаем SSH
+- name: Allow SSH
+  ufw:
+    rule: allow
+    port: "22"
+    proto: tcp
+
+# 8. ПОТОМ включаем UFW с политикой deny
+- name: Enable UFW deny by default
+  ufw:
+    state: enabled
+    policy: deny

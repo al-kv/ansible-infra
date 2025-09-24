@@ -1,0 +1,7 @@
+.ansible/
+*.retry
+vault.yml
+.vault_pass
+inventory.ini
+inventory/*.retry
+

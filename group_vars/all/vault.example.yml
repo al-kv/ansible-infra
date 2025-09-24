@@ -1,0 +1,11 @@
+# Vault example
+
+# Пароли для базы данных
+vault_db_user_password: ""
+vault_zabbix_db_password: ""
+vault_postgres_password: ""
+
+# WireGuard ключи (сгенерируйте новые!)
+vault_wg_server_private_key: ""
+vault_wg_client_private_key: ""
+
