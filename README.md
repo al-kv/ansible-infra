@@ -1,11 +1,12 @@
 # ansible-infra
 
-“Ansible playbooks and roles to automate WireGuard VPN and monitoring stack deployment.”
+“Ansible playbooks and roles to automate WireGuard VPN, application and monitoring stack deployment.”
 
 ## Описание
 
-Этот репозиторий содержит Ansible-плейбуки и роли для развертывания и настройки:
+Этот репозиторий содержит набор Ansible-плейбуков и ролей для развертывания и настройки:
 
+- **vpn**: настройка WireGuard VPN сервера  
 - **app**: веб-приложение с Nginx и PostgreSQL  
 - **mon**: мониторинговый стек (Prometheus, Grafana, Loki, Promtail, Zabbix)  
 - **common**: общие настройки (UFW, SSH, базовые пакеты)  
@@ -16,26 +17,27 @@
 ```
 ├── ansible.cfg              # Конфигурация Ansible
 ├── inventory.ini            # Инвентори (app, mon)
-├── requirements.yml         # Ansible Galaxy зависимости
+├── requirements.yml         # Зависимости Ansible Galaxy
 ├── site.yml                 # Главный плейбук
-├── create_client_config.yml # Дополнительный плейбук для WireGuard
+├── create_client_config.yml # Плейбук для создания конфигов WireGuard
 ├── group_vars/
 │   ├── app.yml
 │   ├── mon.yml
 │   └── all/
-│       ├── vault.example.yml # Шаблон секретов
-│       └── vault.yml         # Секреты (пароли, ключи) – исключён из репозитория
+│       ├── vault.example.yml # Шаблон секрета
+│       └── vault.yml         # Секреты (не в репо)
 ├── roles/
-│   ├── app/
-│   ├── mon/
-│   ├── common/
-│   └── geerlingguy.postgresql/
-└── .gitignore               # Исключения для Git
+│   ├── vpn/                  # роли для WireGuard
+│   ├── app/                  # роли веб-приложения
+│   ├── mon/                  # роли мониторинга
+│   ├── common/               # базовые настройки
+│   └── geerlingguy.postgresql/ # ролевая коллекция PostgreSQL
+└── .gitignore               # Исключения файлов
 ```
 
 ## Зависимости
 
-Установите Ansible и коллекции из `requirements.yml`:
+Установите коллекции Ansible из `requirements.yml`:
 
 ```bash
 ansible-galaxy install -r requirements.yml
@@ -47,23 +49,23 @@ ansible-galaxy install -r requirements.yml
    ```bash
    cp group_vars/all/vault.example.yml group_vars/all/vault.yml
    ```
-2. Заполните реальные значения переменных (пароли и ключи) в `group_vars/all/vault.yml`.
+2. Заполните `group_vars/all/vault.yml` реальными паролями и ключами.
 
 ## Пример запуска
 
-Если требуется ввод пароля для Vault:
-```bash
-ansible-playbook site.yml --ask-vault-pass
-```
-
-Если в `ansible.cfg` указан `vault_password_file`:
-```bash
-ansible-playbook site.yml
-```
+- С вводом пароля Vault:
+  ```bash
+  ansible-playbook site.yml --ask-vault-pass
+  ```
+- Если в `ansible.cfg` указан `vault_password_file`:
+  ```bash
+  ansible-playbook site.yml
+  ```
 
 ## Исключённые файлы и каталоги
 
-Файл `.gitignore` содержит правила для исключения:
+В `.gitignore` прописано исключение для:
+
 - `group_vars/all/vault.yml`
 - временных файлов Ansible (`*.retry`, папка `.ansible/`)
 - SSH-ключей
