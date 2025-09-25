@@ -1,2 +1,3 @@
 wg_network: 10.10.10.0/24
 wg_out_iface: eth0
+mon_server_public_ip: 158.160.197.162

@@ -14,8 +14,8 @@
   when: ansible_connection == 'local'
 
 # 3. Установить Nginx, PostgreSQL и утилиты (включая psycopg2)
-- name: Install app packages
-  ansible.builtin.apt:
+- name: Install app packages non-interactively
+  apt:
     name:
       - nginx
       - postgresql-16
@@ -24,7 +24,15 @@
       - rsync
       - cron
     state: present
-    update_cache: yes
+    update_cache: no
+    force_apt_get: yes
+    force: yes
+    dpkg_options:
+      - 'force-confdef'
+      - 'force-confold'
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+  become: true
 
 # 4. Создать кластер PostgreSQL, если не существует
 - name: Create default PostgreSQL cluster if missing
@@ -32,7 +40,6 @@
   args:
     creates: /etc/postgresql/{{ pg_version }}/main
   become: true
-
 # 5. Убедиться, что служба PostgreSQL запущена
 - name: Ensure PostgreSQL service is running
   systemd:

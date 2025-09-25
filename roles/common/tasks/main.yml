@@ -1,21 +1,41 @@
 ---
-# roles/common/tasks/main.yml
+# 0. Отключаем автоматические обновления перед остальными задачами
+- name: Disable unattended-upgrades
+  systemd:
+    name: unattended-upgrades
+    state: stopped
+    enabled: no
+  become: yes
 
 # 1. Сбор фактов о сервисах
 - name: Gather service facts
   service_facts:
+    # roles/common/tasks/main.yml
 
-# 2. Обновление кэша APT и дистрибутивное обновление
-- name: Update and upgrade
-  apt:
-    update_cache: yes
-    upgrade: dist
+# 2. Неинтерактивный дист-апгрейд через apt-get
+- name: Noninteractive dist-upgrade
+  ansible.builtin.shell: |
+    DEBIAN_FRONTEND=noninteractive \
+    apt-get -y \
+      -o Dpkg::Options::="--force-confdef" \
+      -o Dpkg::Options::="--force-confold" \
+    dist-upgrade
+  args:
+    executable: /bin/bash
+  become: yes
+  run_once: true
 
 # 3. Обновление кэша APT
 - name: Update APT cache
   apt:
     update_cache: yes
-
+  become: yes
+  retries: 5
+  delay: 10
+  register: apt_update
+  until: apt_update is succeeded
+  delegate_to: "{{ groups['mon'][0] }}"
+  run_once: true
 # 4. Установка базовых пакетов
 - name: Install common packages
   apt:
@@ -26,15 +46,16 @@
       - htop
       - ca-certificates
     state: present
+  become: yes
 
 # 5. Установка пакетов для мониторинга
 - name: Install monitoring packages
   apt:
     name:
-      - prometheus-node-exporter
       - python3-psycopg2
       - chrony
     state: present
+  become: yes
 
 # 6. Включение и запуск chrony, если сервис существует
 - name: Enable chrony if service exists
@@ -43,16 +64,22 @@
     state: started
     enabled: true
   when: "'chrony.service' in ansible_facts.services"
+  become: yes
 
-# 7. СНАЧАЛА разрешаем SSH
+# 7. Сначала разрешаем SSH
 - name: Allow SSH
   ufw:
     rule: allow
     port: "22"
     proto: tcp
+  become: yes
 
-# 8. ПОТОМ включаем UFW с политикой deny
+# 8. Потом включаем UFW с политикой deny
 - name: Enable UFW deny by default
   ufw:
     state: enabled
     policy: deny
+  become: yes
+
+# 9. Повторно включаем автоматические обновления после всех задач
+
