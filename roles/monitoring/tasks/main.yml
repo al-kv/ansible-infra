@@ -1,0 +1,48 @@
+---
+# Disable system package node-exporter to free port 9100
+- name: Disable system Node Exporter service
+  systemd:
+    name: prometheus-node-exporter
+    enabled: false
+    state: stopped
+
+# Ensure Prometheus config directory exists
+- name: Ensure Prometheus config directory exists
+  file:
+    path: /opt/monitoring
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+# Deploy prometheus.yml from template
+- name: Deploy prometheus.yml
+  template:
+    src: prometheus.yml.j2
+    dest: /opt/monitoring/prometheus.yml
+    owner: root
+    group: root
+    mode: '0644'
+
+# Run Prometheus container
+- name: Run Prometheus container
+  community.docker.docker_container:
+    name: prometheus
+    image: prom/prometheus:latest
+    state: started
+    restart_policy: unless-stopped
+    ports:
+      - "{{ wireguard_ip }}:9090:9090"
+    volumes:
+      - /opt/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+
+# Run Node Exporter container
+- name: Run Node Exporter container
+  community.docker.docker_container:
+    name: node-exporter
+    image: prom/node-exporter:latest
+    state: started
+    restart_policy: unless-stopped
+    ports:
+      - "{{ wireguard_ip }}:9100:9100"
+
