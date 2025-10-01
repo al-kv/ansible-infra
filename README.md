@@ -5,14 +5,14 @@ Ansible playbooks and roles to automate WireGuard VPN, application and monitorin
 ## Описание
 
 Этот репозиторий содержит набор Ansible-плейбуков и ролей для развертывания и настройки:
-
 - vpn: настройка WireGuard VPN сервера
 - app: веб-приложение с Nginx и PostgreSQL
 - mon: подготовка окружения для мониторинга (директории, права)
+- database: настройка PostgreSQL и управление базой данных
 - monitoring: запуск Prometheus и Node Exporter в контейнерах
 - grafana: запуск Grafana в контейнере
 - common: общие настройки (UFW, SSH, базовые пакеты, неинтерактивный APT, unattended-upgrades)
-- geerlingguy.postgresql: роль для управления PostgreSQL от сообщества
+- geerlingguy.postgresql: роль сообщества для управления PostgreSQL
 
 ## Структура проекта
 
@@ -32,6 +32,7 @@ Ansible playbooks and roles to automate WireGuard VPN, application and monitorin
 │   ├── vpn/
 │   ├── app/
 │   ├── mon/
+│   ├── database/
 │   ├── monitoring/
 │   ├── grafana/
 │   ├── common/
@@ -47,7 +48,7 @@ Ansible playbooks and roles to automate WireGuard VPN, application and monitorin
 ansible-galaxy install -r requirements.yml
 ```
 
-Файл requirements.yml теперь содержит:
+Файл `requirements.yml` содержит:
 
 ```yaml
 roles:
@@ -63,7 +64,7 @@ collections:
    ```bash
    cp group_vars/all/vault.example.yml group_vars/all/vault.yml
    ```
-2. Заполните group_vars/all/vault.yml реальными паролями и ключами.
+2. Заполните `group_vars/all/vault.yml` реальными паролями и ключами.
 
 ## Пример запуска
 
@@ -71,15 +72,23 @@ collections:
   ```bash
   ansible-playbook site.yml --ask-vault-pass
   ```
-- Если в ansible.cfg указан vault_password_file:
+- Если в `ansible.cfg` указан `vault_password_file`:
   ```bash
   ansible-playbook site.yml
   ```
 
-**Компоненты**:
-- WireGuard VPN  
-- Веб-приложение (Nginx + PostgreSQL)  
-- Мониторинговый стек (Prometheus, Node Exporter, Grafana, Zabbix)
+## Компоненты
+- WireGuard VPN
+- Веб-приложение (Nginx + PostgreSQL)
+- Подготовка окружения:
+  - mon (директории и права)
+  - geerlingguy.postgresql (PostgreSQL)
+- Мониторинговый стек:
+  - Prometheus
+  - Node Exporter (порт 9101)
+  - Grafana
+- Классический мониторинг:
+  - Zabbix Server + Zabbix Agent (UI на svr1)
 
 ## Проверка
 
@@ -90,17 +99,17 @@ ansible-playbook site.yml --check
 ```
 
 После успешного выполнения проверьте:
-- http://<app_host>/  
-- http://<app_host>/health  
-- http://<monitor_host>:9090/graph  
-- http://<monitor_host>:9100/metrics  
-- http://<monitor_host>:3000/  
-- http://<monitor_host>:8080/  
-
+- http://<app_host>/            (веб-приложение)
+- http://<app_host>/health      (health check)
+- http://svr2.vpn.local:9090/targets      (Prometheus)
+- http://svr2.vpn.local:9101/metrics      (Node Exporter)
+- http://svr2.vpn.local:3000/             (Grafana)
+- http://svr1.vpn.local/                  (Zabbix Frontend)
+- http://svr1.vpn.local/health            (Zabbix Frontend health)
 ---
 
-**Примечание:** в .gitignore исключены:
-- group_vars/all/vault.yml
-- временные файлы Ansible (*.retry, .ansible/)
+**Примечание:** в `.gitignore` исключены:
+- `group_vars/all/vault.yml`
+- временные файлы Ansible (`*.retry`, `.ansible/`)
 - SSH-ключи
 
