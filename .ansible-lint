@@ -1,0 +1,23 @@
+skip_list:
+  - fqcn[action-core]
+  - fqcn[action]
+  - name[missing]
+  - yaml[empty-lines]
+  - yaml[trailing-spaces]
+  - yaml[colons]
+  - yaml[truthy]
+  - risky-file-permissions
+  - no-changed-when
+  - command-instead-of-shell
+  - no-free-form
+warn_list:
+  - yaml[line-length]
+  - yaml[comments]
+
+  - schema[meta]
+  - yaml[octal-values]
+  - risky-shell-pipe
+  - no-handler
+  - schema[meta]
+  - risky-shell-pipe
+  - no-handler

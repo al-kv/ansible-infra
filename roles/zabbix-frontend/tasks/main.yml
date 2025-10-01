@@ -1,0 +1,37 @@
+---
+# roles/zabbix-frontend/tasks/main.yml
+
+- name: Install Zabbix frontend PHP package
+  apt:
+    name: zabbix-frontend-php
+    state: present
+    update_cache: yes
+
+- name: Ensure frontend directory exists
+  file:
+    path: /var/www/zabbix
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: '0755'
+
+- name: Copy Zabbix UI files
+  ansible.builtin.shell: |
+    rsync -a /usr/share/zabbix/ /var/www/zabbix/
+
+- name: Set correct ownership for Zabbix files
+  file:
+    path: /var/www/zabbix
+    owner: www-data
+    group: www-data
+    recurse: yes
+    mode: '0755'
+
+- name: Template zabbix.conf.php
+  template:
+    src: zabbix.conf.php.j2
+    dest: /var/www/zabbix/conf/zabbix.conf.php
+    owner: www-data
+    group: www-data
+    mode: '0640'
+

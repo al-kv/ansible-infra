@@ -1,0 +1,38 @@
+# group_vars/app.yml
+
+app_nginx_health_path: /health
+app_backup_retention_days: 7
+app_server_ip: 10.130.0.15
+
+db_user_password: "{{ vault_db_user_password }}"
+
+# Параметры роли geerlingguy.postgresql
+pg_version: "16"
+postgresql_databases:
+  - name: demo_db
+    owner: demo_user
+    encoding: UTF8
+    lc_collate: "C.UTF-8"
+    lc_ctype:   "C.UTF-8"
+postgresql_users:
+  - name: demo_user
+    password: "{{ db_user_password }}"
+    priv: "demo_db:ALL"
+
+# Общие параметры для всех модулей postgresql_*
+postgresql_login_host: "127.0.0.1"
+postgresql_login_unix_socket: ""
+postgresql_login_user: "postgres"
+postgresql_login_password: "{{ vault_postgres_password }}"
+postgresql_port: 5432
+
+# — ДОбавляем ниже новые параметры локали и кодировки —
+
+# Кодировка базы
+postgresql_encoding: "UTF8"
+# Локаль совпадает с текущей на хосте (C.UTF-8)
+postgresql_lc_collate: "C.UTF-8"
+postgresql_lc_ctype:   "C.UTF-8"
+# Отключаем редактирование pg_hba.conf ролью
+postgresql_manage_pg_hba: false
+

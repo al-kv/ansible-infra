@@ -1,0 +1,8 @@
+# requirements.yml
+roles:
+  - src: geerlingguy.postgresql
+
+collections:
+  - name: community.docker
+    version: ">=2.0.0"
+

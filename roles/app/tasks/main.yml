@@ -1,0 +1,152 @@
+---
+# roles/app/tasks/main.yml
+
+# 1. Разрешить HTTP
+- name: Allow HTTP on UFW
+  community.general.ufw:
+    rule: allow
+    port: "80"
+    proto: tcp
+
+# 2. Сбор фактов о сервисах (для локального подключения)
+- name: Gather service facts for app
+  ansible.builtin.service_facts:
+  when: ansible_connection == 'local'
+
+# 3. Установить Nginx, PostgreSQL и утилиты (включая psycopg2)
+- name: Install app packages non-interactively
+  apt:
+    name:
+      - nginx
+      - postgresql-16
+      - postgresql-contrib
+      - python3-psycopg2
+      - rsync
+      - cron
+    state: present
+    update_cache: no
+    force_apt_get: yes
+    force: yes
+    dpkg_options:
+      - 'force-confdef'
+      - 'force-confold'
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+  become: true
+
+# 4. Создать кластер PostgreSQL, если не существует
+- name: Create default PostgreSQL cluster if missing
+  shell: pg_createcluster {{ pg_version }} main --start
+  args:
+    creates: /etc/postgresql/{{ pg_version }}/main
+  become: true
+# 5. Убедиться, что служба PostgreSQL запущена
+- name: Ensure PostgreSQL service is running
+  systemd:
+    name: postgresql
+    state: started
+    enabled: true
+  when: "'postgresql.service' in ansible_facts.services"
+
+# 6. Разместить простую страницу и endpoint здоровья
+- name: Place index.html
+  copy:
+    dest: /var/www/html/index.html
+    content: |
+      <html><body>
+      <h1>svr1 (App Server) - {{ app_server_ip }}</h1>
+      <p>Health: {{ app_nginx_health_path | default('/health') }}</p>
+      <p>Server Time: {{ ansible_date_time.iso8601 }}</p>
+      </body></html>
+
+- name: Place health endpoint
+  copy:
+    dest: "/var/www/html{{ app_nginx_health_path | default('/health') }}"
+    content: |
+      OK
+      Server: {{ inventory_hostname }}
+      IP: {{ app_server_ip }}
+      Time: {{ ansible_date_time.iso8601 }}
+
+# 7. Запустить и включить Nginx, если сервис существует
+- name: Enable and start nginx via systemd
+  systemd:
+    name: nginx
+    state: started
+    enabled: true
+  when: "'nginx.service' in ansible_facts.services"
+
+# 8. Создать пользователя БД 'demo_user'
+- name: Create PostgreSQL user demo_user
+  community.postgresql.postgresql_user:
+    name: demo_user
+    password: "{{ db_user_password }}"
+    role_attr_flags: LOGIN
+    login_host: "{{ postgresql_login_host }}"
+    login_user: "{{ postgresql_login_user }}"
+    login_password: "{{ postgresql_login_password }}"
+    login_unix_socket: "{{ postgresql_login_unix_socket }}"
+    port: "{{ postgresql_port }}"
+    state: present
+  become: true
+  become_user: root
+
+# 9. Создать базу данных 'demo_db' с владельцем demo_user
+- name: Create PostgreSQL database demo_db
+  community.postgresql.postgresql_db:
+    name: demo_db
+    owner: demo_user
+    login_host: "{{ postgresql_login_host }}"
+    login_user: "{{ postgresql_login_user }}"
+    login_password: "{{ postgresql_login_password }}"
+    login_unix_socket: "{{ postgresql_login_unix_socket }}"
+    port: "{{ postgresql_port }}"
+    state: present
+  become: true
+  become_user: root
+
+# 10. Создать директорию для бэкапов
+- name: Create backup directory
+  file:
+    path: /var/backups/postgres
+    state: directory
+    owner: postgres
+    group: postgres
+    mode: '0750'
+
+# 11. Сценарий бэкапа с логированием
+- name: Create backup script
+  copy:
+    dest: /usr/local/bin/db_backup.sh
+    mode: "0755"
+    content: |
+      #!/usr/bin/env bash
+      set -euo pipefail
+
+      TS=$(date +%F_%H-%M-%S)
+      D=/var/backups/postgres
+      LOGFILE=/var/log/db_backup.log
+
+      echo "[$(date)] Starting backup of demo_db" >> "$LOGFILE"
+
+      if sudo -u postgres pg_dump demo_db > "$D/demo_db_${TS}.sql"; then
+          echo "[$(date)] Backup successful: demo_db_${TS}.sql" >> "$LOGFILE"
+      else
+          echo "[$(date)] ERROR: Backup failed" >> "$LOGFILE"
+          exit 1
+      fi
+
+      # Очистка старых бэкапов
+      find "$D" -type f -name "demo_db_*.sql" -mtime +{{ app_backup_retention_days | default(7) }} -delete
+      echo "[$(date)] Cleanup completed" >> "$LOGFILE"
+
+# 12. Настроить cron-задачу на ежедневный бэкап
+- name: Cron daily backup
+  cron:
+    name: "Daily PostgreSQL backup"
+    user: root
+    job: "/usr/local/bin/db_backup.sh"
+    minute: "0"
+    hour: "2"
+    state: present
+

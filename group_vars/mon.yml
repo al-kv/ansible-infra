@@ -1,0 +1,32 @@
+# WireGuard настройки
+wg_iface: wg0
+wg_server_ip: 10.10.10.1/24
+wg_listen_port: 51820
+wg_client_ip: 10.10.10.2/32
+
+# Привязка сервисов мониторинга к VPN IP
+grafana_bind: 10.10.10.1
+prometheus_bind: 10.10.10.1
+zabbix_bind: 10.10.10.1
+loki_bind: 10.10.10.1
+
+# Реальные IP адреса для мониторинга
+app_server_monitor_ip: "10.130.0.15"
+mon_server_monitor_ip: "10.130.0.16"
+
+# Безопасные переменные
+wg_server_private_key: "{{ vault_wg_server_private_key }}"
+wg_client_private_key: "{{ vault_wg_client_private_key }}"
+zabbix_db_password: "{{ vault_zabbix_db_password }}"
+postgres_password: "{{ vault_postgres_password }}"
+# Переменные для Zabbix Exporter
+zabbix_api_user: "Admin"
+zabbix_api_password: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          36373935343465646339383839643832666138636233353137313333373632316638356165313765
+          6636376161343336356466643861643331353637313634640a393435633939383233386430623264
+          39396535626135356166326435666333333833353434373562353539623563616138356561633761
+          3531356634636139390a393438613662393532616564646638376230323935386562653732303263
+          62386334346564376639303861346335336234343231613531643631313338656365303036313333
+          6234373238353439393739623135636534613366313865313639
+

@@ -1,0 +1,7 @@
+wg_network: 10.10.10.0/24
+wg_server_ip: 10.10.10.1/24          # IP сервера в этой сети
+wg_client_ip: 10.10.10.3/32          # Уникальный IP для Windows-клиента
+wg_listen_port: 51820               # Порт WireGuard на сервере
+wg_out_iface: eth0
+mon_server_public_ip: 158.160.197.162
+

@@ -1,0 +1,75 @@
+---
+# roles/database/tasks/main.yml
+
+- name: Install Python MySQL library
+  apt:
+    name: python3-mysqldb
+    state: present
+    update_cache: yes
+
+- name: Install MariaDB server
+  apt:
+    name: mariadb-server
+    state: present
+    update_cache: yes
+
+- name: Ensure MariaDB is running
+  service:
+    name: mariadb
+    state: started
+    enabled: yes
+
+- name: Import Zabbix GPG key
+  ansible.builtin.apt_key:
+    url: https://repo.zabbix.com/zabbix-official-repo.key
+    state: present
+
+- name: Add Zabbix APT repository
+  ansible.builtin.apt_repository:
+    repo: "deb https://repo.zabbix.com/zabbix/6.0/ubuntu noble main"
+    state: present
+    filename: zabbix
+
+- name: Update APT cache
+  apt:
+    update_cache: yes
+
+- name: Install Zabbix server MySQL package
+  apt:
+    name: zabbix-server-mysql
+    state: present
+
+- name: Install Zabbix SQL scripts package
+  apt:
+    name: zabbix-sql-scripts
+    state: present
+
+- name: Create Zabbix database
+  community.mysql.mysql_db:
+    name: "{{ zabbix_db_name }}"
+    encoding: utf8mb4
+    state: present
+
+- name: Create Zabbix DB user
+  community.mysql.mysql_user:
+    name: "{{ zabbix_db_user }}"
+    password: "{{ zabbix_db_password }}"
+    host: localhost
+    priv: "{{ zabbix_db_name }}.*:ALL"
+    column_case_sensitive: false
+    state: present
+
+- name: Get number of tables in Zabbix database
+  ansible.builtin.shell: |
+    mysql -u{{ zabbix_db_user }} -p{{ zabbix_db_password }} \
+      -sN -e "SELECT COUNT(*) FROM information_schema.tables \
+      WHERE table_schema='{{ zabbix_db_name }}';"
+  register: zbx_table_count
+  changed_when: false
+
+- name: Import Zabbix schema SQL if database is empty
+  ansible.builtin.shell: |
+    gunzip -c /usr/share/zabbix-sql-scripts/mysql/server.sql.gz | \
+    mysql -u{{ zabbix_db_user }} -p{{ zabbix_db_password }} {{ zabbix_db_name }}
+  when: zbx_table_count.stdout | int == 0
+

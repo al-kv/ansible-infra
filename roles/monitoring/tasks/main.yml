@@ -1,0 +1,49 @@
+---
+# roles/monitoring/tasks/main.yml
+
+# Останавливаем и удаляем системный Node Exporter
+- name: Remove host Node Exporter package
+  apt:
+    name: prometheus-node-exporter
+    state: absent
+  ignore_errors: true
+
+# Убеждаемся, что есть папка для конфига Prometheus
+- name: Ensure Prometheus config directory exists
+  file:
+    path: /opt/monitoring
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+# Развёртываем prometheus.yml
+- name: Deploy prometheus.yml
+  template:
+    src: prometheus.yml.j2
+    dest: /opt/monitoring/prometheus.yml
+    owner: root
+    group: root
+    mode: '0644'
+
+# Запускаем контейнер Prometheus
+- name: Run Prometheus container
+  community.docker.docker_container:
+    name: prometheus
+    image: prom/prometheus:latest
+    state: started
+    restart_policy: unless-stopped
+    published_ports:
+      - "{{ wireguard_ip }}:9090:9090"
+    volumes:
+      - /opt/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+
+# Запускаем контейнер Node Exporter
+- name: Run Node Exporter container
+  community.docker.docker_container:
+    name: node-exporter
+    image: prom/node-exporter:latest
+    state: started
+    restart_policy: unless-stopped
+    published_ports:
+      - "{{ wireguard_ip }}:9101:9100"

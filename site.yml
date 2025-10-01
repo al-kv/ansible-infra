@@ -1,0 +1,39 @@
+- name: Common baseline on all managed hosts
+  hosts: all
+  become: true
+  pre_tasks:
+    - name: Remove malformed Docker list file
+      ansible.builtin.file:
+        path: /etc/apt/sources.list.d/docker.list
+        state: absent
+  roles:
+    - common
+
+- name: Application server setup (svr1)
+  hosts: app
+  become: true
+  roles:
+    - geerlingguy.postgresql
+    - app
+    - database          # <-- Вставили роль database здесь
+    - zabbix-frontend   # <-- Затем роль zabbix-frontend
+    - nginx-zabbix      # <-- И роль nginx-zabbix
+
+- name: Monitoring server setup (svr2)
+  hosts: mon
+  become: true
+  roles:
+    - mon
+    - monitoring
+    - grafana
+
+- name: Re-enable unattended-upgrades on all managed hosts
+  hosts: all
+  become: true
+  tasks:
+    - name: Re-enable unattended-upgrades
+      systemd:
+        name: unattended-upgrades
+        state: started
+        enabled: yes
+

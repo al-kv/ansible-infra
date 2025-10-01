@@ -1,0 +1,12 @@
+- name: Run Grafana container
+  community.docker.docker_container:
+    name: grafana
+    image: grafana/grafana-oss:latest
+    state: started
+    restart_policy: unless-stopped
+    published_ports:
+      - "{{ wireguard_ip }}:3000:3000"
+    image_name_mismatch: recreate
+    volumes:
+      - monitoring_grafana_data:/var/lib/grafana
+
