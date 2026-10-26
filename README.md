@@ -1,7 +1,13 @@
 # ansible-infra
 
 Ansible playbooks and roles to automate WireGuard VPN, application and monitoring stack deployment.
-
+## Архитектура
+```mermaid
+graph LR
+    ControlNode[Ansible Control Node] -->|Playbooks| VPN(WireGuard VPN)
+    ControlNode -->|Playbooks| App(Nginx + PostgreSQL)
+    ControlNode -->|Playbooks| Mon(Prometheus + Grafana)
+```
 ## Описание
 
 Этот репозиторий содержит набор Ansible-плейбуков и ролей для развертывания и настройки:
@@ -76,7 +82,24 @@ collections:
   ```bash
   ansible-playbook site.yml
   ```
+Ожидаемый результат выполнения:
+```
+PLAY [Deploy Homelab Infrastructure] *******************************************
 
+TASK [Gathering Facts] *********************************************************
+ok: [vpn-server]
+ok: [app-server]
+
+TASK [vpn : Install WireGuard] *************************************************
+changed: [vpn-server]
+
+TASK [app : Deploy Nginx] ******************************************************
+changed: [app-server]
+
+PLAY RECAP *********************************************************************
+app-server                 : ok=12   changed=4    unreachable=0    failed=0
+vpn-server                 : ok=8    changed=2    unreachable=0    failed=0
+```
 ## Компоненты
 - WireGuard VPN
 - Веб-приложение (Nginx + PostgreSQL)
